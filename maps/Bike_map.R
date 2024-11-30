@@ -2,6 +2,7 @@ library(tidyverse)
 library(mapview)
 library(sf)
 
+# Downloaded from Ride with GPS via Profile / Backup
 gps_path = here::here('RWGPS/rwgps_backup/')
 gps_files = list.files(gps_path, '*.gpx', full.names=TRUE)
 
@@ -21,6 +22,7 @@ boundary = st_convex_hull(tracks) |>
   st_buffer(10000)
 boundary_all = st_union(boundary)
 
+# https://www.mass.gov/info-details/massgis-data-major-ponds-and-major-streams
 rivers = read_sf(here::here('maps/data/majorhydro/MAJSTRM_ARC.shp'))
 rivers = rivers[boundary_all,]
 
@@ -32,6 +34,7 @@ library(terra)
 library(elevatr)
 library(rayshader)
 
+# Elevation data
 dem <- elevatr::get_elev_raster(
     locations = st_as_sf(boundary_all),
     z = 10, clip = "locations"
@@ -101,6 +104,7 @@ rayshader::render_camera(
 # 8. RENDER OBJECT
 #-----------------
 
+# Downloaded from here...
 u <- "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/photo_studio_loft_hall_4k.hdr"
 hdri_file <- here::here('maps/data', basename(u))
 
