@@ -1,4 +1,9 @@
+# Inspired by 
 # https://github.com/milos-agathon/3d-river-maps/blob/main/R/switzerland.r
+
+# This version does not have enough rivers. See
+# Connecticut_Watershed.R for a better version.
+
 # 1. LIBRARIES
 #-------------
 
@@ -137,7 +142,7 @@ download.file(
 )
 
 rayshader::render_highquality(
-    filename = here::here("maps/ct_river_watershed_zscale9.png"),
+    filename = here::here("maps/ct_river_watershed_zscale8.png"),
     preview = TRUE,
     light = FALSE,
     environment_light = hdri_file,
