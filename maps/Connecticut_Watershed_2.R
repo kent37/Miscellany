@@ -3,7 +3,7 @@ library(tidyverse)
 library(mapview)
 library(sf)
 
-
+# This is MA only
 ct_river_watershed = 
   read_sf(here::here('maps/data/megabasins/MEGABASINS_POLY.shp')) |> 
   filter(NAME=='CONNECTICUT')

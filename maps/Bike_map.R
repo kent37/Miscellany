@@ -22,6 +22,7 @@ boundary = st_convex_hull(tracks) |>
   st_buffer(10000)
 boundary_all = st_union(boundary)
 
+# Waterways from MassGIS give good coverage within state
 # https://www.mass.gov/info-details/massgis-data-major-ponds-and-major-streams
 rivers = read_sf(here::here('maps/data/majorhydro/MAJSTRM_ARC.shp'))
 rivers = rivers[boundary_all,]
@@ -29,7 +30,58 @@ rivers = rivers[boundary_all,]
 ponds = read_sf(here::here('maps/data/majorhydro/MAJPOND_POLY.shp'))
 ponds = ponds[boundary_all,]
 
-# OK let's do this...
+# Waterways from OSM
+library(osmdata)
+
+# Get a bounding box in lat-long
+bbox = st_bbox(boundary_all) |> 
+  st_as_sfc() |> 
+  st_transform(4326) |> 
+  st_bbox()
+
+# These are too detailed
+# osm_water = opq(bbox) %>% 
+#   add_osm_feature("water") %>% 
+#   osmdata_sf() 
+
+# This gives major waterways outside of Massachusetts
+# They overlap well enough with the MassGIS rivers that it is OK
+# to use both
+osm_waterway = opq(bbox) %>% 
+  add_osm_feature("waterway") %>% 
+  osmdata_sf() 
+
+# We need a bunch of pieces from this
+# osm_lines = osm_water$osm_lines |> 
+#   st_geometry() |> 
+#   st_transform(26986) |> 
+#   (\(x) x[boundary_all,])() |> 
+#   st_as_sf()
+# 
+# osm_polygons = osm_water$osm_polygons |> 
+#   filter(is.na(place) | 
+#            (!is.na(place) & !place %in% c('island', 'islet'))) |> 
+#   filter(is.na(natural) | 
+#            (!is.na(natural) & !natural %in% c('wood'))) |> 
+#   st_geometry() |> 
+#   st_transform(26986) |> 
+#   (\(x) x[boundary_all,])() |> 
+#   st_as_sf()
+# 
+# osm_multipolygons = osm_water$osm_multipolygons |> 
+#   st_geometry() |> 
+#   st_transform(26986) |> 
+#   (\(x) x[boundary_all,])() |> 
+#   st_as_sf()
+
+osm_waterways = osm_waterway$osm_lines |> 
+  filter(waterway=='river') |> 
+  st_geometry() |> 
+  st_transform(26986) |> 
+  (\(x) x[boundary_all,])() |> 
+  st_as_sf()
+
+# OK let's make a map...
 library(terra)
 library(elevatr)
 library(rayshader)
@@ -60,6 +112,15 @@ dem_matrix |>
     rayshader::add_overlay(
         rayshader::generate_line_overlay(
             geometry = rivers,
+            extent = dem_country,
+            heightmap = dem_matrix,
+            color = "#387B9C",
+            linewidth = 2
+        ), alphalayer = 1
+    ) |>
+    rayshader::add_overlay(
+        rayshader::generate_line_overlay(
+            geometry = osm_waterways,
             extent = dem_country,
             heightmap = dem_matrix,
             color = "#387B9C",
