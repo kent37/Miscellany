@@ -5,10 +5,10 @@ library(sf)
 
 # This is MA only
 ct_river_watershed = 
-  read_sf(here::here('maps/data/megabasins/MEGABASINS_POLY.shp')) |> 
+  read_sf(here::here('maps/data/Massachusetts_hydrography/megabasins/MEGABASINS_POLY.shp')) |> 
   filter(NAME=='CONNECTICUT')
 
-rivers = read_sf(here::here('maps/data/hydro25k/HYDRO25K_ARC.shp'))
+rivers = read_sf(here::here('maps/data/Massachusetts_hydrography/hydro25k/HYDRO25K_ARC.shp'))
 rivers = rivers[ct_river_watershed,]
 mapview(rivers, zcol='ARC_CODE')
 

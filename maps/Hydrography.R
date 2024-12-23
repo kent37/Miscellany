@@ -115,6 +115,21 @@ sf_object <- st_as_sf(results, wkt = "geometry_wkt", crs = 4326)
 mapview(st_geometry(sf_object))
 dbDisconnect(con, shutdown = TRUE)
 
+# Direct download from duckdb client
+"
+COPY (
+    SELECT names.primary as name, class, subtype, geometry
+    FROM read_parquet('s3://overturemaps-us-west-2/release/2024-11-13.0/theme=base/type=water/*')
+    WHERE
+        bbox.xmin >= -73.19659
+        AND bbox.ymin >= 41.99764
+        AND bbox.xmax <= -71.88716
+        AND bbox.ymax <= 42.74154
+    LIMIT 10
+) 
+TO 'ct_watershed_rivers.gpkg' WITH (FORMAT GDAL, DRIVER 'GPKG');
+"
+
 # Try a downloaded version
 # Can't read :-(
-overture_water = st_read(here::here('maps/data/ct_watershed_rivers.parquet'))
+overture_water = st_read(here::here('maps/data/Massachusetts_hydrography/ct_watershed_rivers.gpkg'))
