@@ -90,7 +90,8 @@ tracks_data = trips_raw |>
   group_by(year) |> 
   mutate(cum_miles=cumsum(miles), 
          cum_climb=cumsum(elevation),
-         cum_time=cumsum(moving_time)) |> 
+         cum_time=cumsum(moving_time),
+         n=seq_along(miles)) |> 
   ungroup()
 
 # Make break points and labels
@@ -112,7 +113,7 @@ breaks = tibble(
 
 # Cumulative climb
 (climb = ggplot(tracks_data, aes(yday, cum_climb, color=factor(year))) +
-  geom_line() +
+  geom_step() +
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(labels=scales::comma) +
@@ -134,14 +135,50 @@ breaks = tibble(
   theme(axis.text.x=element_text(hjust=-0.2),
           plot.title=element_text(face='bold', size=rel(1.5))))
 
-library(patchwork)
+# Cumulative number of rides
+(rides = ggplot(tracks_data, aes(yday, n, color=factor(year))) +
+  geom_step() +
+  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
+                     minor_breaks=NULL) +
+  scale_y_continuous(labels=scales::comma) +
+  labs(x='', y='Number of rides', 
+       title='Cumulative rides by year', color='') +
+  theme_minimal() +
+  theme(axis.text.x=element_text(hjust=-0.2),
+          plot.title=element_text(face='bold', size=rel(1.5))))
 
-(miles / climb / time)
 # Monthly miles
 tracks_data |> 
   summarize(miles=sum(miles), .by=c(year, month)) |> 
   ggplot(aes(month, miles, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
-  labs(fill=NULL) +
+  labs(title='Monthly miles', fill=NULL) +
+  theme_minimal()
+
+# Monthly climb
+tracks_data |> 
+  summarize(climb=sum(elevation), .by=c(year, month)) |> 
+  ggplot(aes(month, climb, fill=factor(year))) +
+  geom_col(position=position_dodge(preserve='single')) +
+  scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  labs(title='Monthly climp', fill=NULL) +
+  theme_minimal()
+
+# Monthly moving time
+tracks_data |> 
+  summarize(moving_time=sum(moving_time), .by=c(year, month)) |> 
+  ggplot(aes(month, moving_time, fill=factor(year))) +
+  geom_col(position=position_dodge(preserve='single')) +
+  scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  labs(title='Monthly moving time', fill=NULL) +
+  theme_minimal()
+
+# Histogram of miles
+tracks_data |> 
+  ggplot(aes(miles, fill=factor(year), group=year)) +
+  geom_histogram(binwidth=5, position='dodge') +
+  scale_y_continuous(minor_breaks=NULL) +
+  labs(title='Ride length', y='Number of rides', fill=NULL) +
+  facet_wrap(~year, ncol=1) +
   theme_minimal()
