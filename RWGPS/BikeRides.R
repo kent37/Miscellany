@@ -102,7 +102,7 @@ breaks = tibble(
 
 # Cumulative miles
 (miles = ggplot(tracks_data, aes(yday, cum_miles, color=factor(year))) +
-  geom_line() +
+  geom_step() +
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
@@ -125,7 +125,7 @@ breaks = tibble(
 
 # Cumulative moving time
 (time = ggplot(tracks_data, aes(yday, cum_time, color=factor(year))) +
-  geom_line() +
+  geom_step() +
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(labels=scales::comma) +
