@@ -85,7 +85,8 @@ tracks_data = trips_raw |>
     year=year(datestamp), month=month(datestamp), yday=yday(datestamp), 
     miles=distance*feet_per_meter/5280,
     elevation=elevation_gain*feet_per_meter,
-    moving_time=moving_time/60) |> 
+    moving_time=moving_time/60,
+  activity=str_remove(activity_type, 'cycling:')) |> 
   arrange(datestamp) |> 
   group_by(year) |> 
   mutate(cum_miles=cumsum(miles), 
@@ -162,8 +163,11 @@ tracks_data |>
   ggplot(aes(month, climb, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
-  labs(title='Monthly climp', fill=NULL) +
-  theme_minimal()
+  labs(x='', y='Feet climbed', 
+       title='Monthly climb', fill=NULL) +
+  theme_minimal() +
+  theme(axis.text.x=element_text(hjust=-0.2),
+          plot.title=element_text(face='bold', size=rel(1.5)))
 
 # Monthly moving time
 tracks_data |> 
@@ -171,8 +175,23 @@ tracks_data |>
   ggplot(aes(month, moving_time, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
-  labs(title='Monthly moving time', fill=NULL) +
-  theme_minimal()
+  labs(x='', y='Moving time', 
+       title='Monthly moving time', fill=NULL) +
+  theme_minimal() +
+  theme(axis.text.x=element_text(hjust=-0.2),
+          plot.title=element_text(face='bold', size=rel(1.5)))
+
+# Monthly rides
+tracks_data |> 
+  summarize(rides=n(), .by=c(year, month)) |> 
+  ggplot(aes(month, rides, fill=factor(year))) +
+  geom_col(position=position_dodge(preserve='single')) +
+  scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  labs(x='', y='Number of rides', 
+       title='Monthly rides', fill=NULL) +
+  theme_minimal() +
+  theme(axis.text.x=element_text(hjust=-0.2),
+          plot.title=element_text(face='bold', size=rel(1.5)))
 
 # Histogram of miles
 tracks_data |> 
@@ -180,5 +199,5 @@ tracks_data |>
   geom_histogram(binwidth=5, position='dodge') +
   scale_y_continuous(minor_breaks=NULL) +
   labs(title='Ride length', y='Number of rides', fill=NULL) +
-  facet_wrap(~year, ncol=1) +
+  facet_grid(year ~ activity) +
   theme_minimal()
