@@ -42,45 +42,65 @@ read_gpx = function(path) {
 #   ungroup()
 
 # Authenticate at RwGPS
-api_key = keyring::key_get('RideWithGPS_API_Key')
-password = keyring::key_get('RideWithGPS_Password')
-req <- request("https://ridewithgps.com/api/v1/auth_tokens.json") |> 
-  req_headers('x-rwgps-api-key'=api_key) |> 
-  req_body_json(list(
-    user = list(email='kent3737@gmail.com',
-    password = password
-    ))
-)
-
-resp <- req_perform(req)
-auth_token = resp |> resp_body_json() |> pluck('auth_token', 'auth_token')
-
-# Request rides
-# Get the number of pages
-req = request('https://ridewithgps.com/api/v1/trips.json') |> 
-  req_headers('x-rwgps-api-key'=api_key,
-              'x-rwgps-auth-token' = auth_token)
-resp <- req_perform(req)
-pages = resp |> resp_body_json() |> pluck('meta', 'pagination', 'page_count')
-
-# Get one page of trips
-get_trips_page = function(page) {
- req = request(
-   glue::glue('https://ridewithgps.com/api/v1/trips.json?page={page}')) |> 
-  req_headers('x-rwgps-api-key'=api_key,
-              'x-rwgps-auth-token' = auth_token)
+get_auth_token <- function(api_key) {
+  password = keyring::key_get('RideWithGPS_Password')
+  req <- request("https://ridewithgps.com/api/v1/auth_tokens.json") |> 
+    req_headers('x-rwgps-api-key'=api_key) |> 
+    req_body_json(list(
+      user = list(email='kent3737@gmail.com',
+      password = password
+      ))
+  )
+  
   resp <- req_perform(req)
-  resp |> resp_body_json() |> pluck('trips')
+  auth_token = resp |> resp_body_json() |> pluck('auth_token', 'auth_token')
+  auth_token
 }
 
-# Get all the trips in a data frame
-trips_raw = 1:pages |> 
-  map(get_trips_page) |> 
-  bind_rows()
+# Request rides
+get_rides <- function(api_key, auth_token) {
+  # Get the number of pages
+  req = request('https://ridewithgps.com/api/v1/trips.json') |> 
+    req_headers('x-rwgps-api-key'=api_key,
+                'x-rwgps-auth-token' = auth_token)
+  resp <- req_perform(req)
+  pages = resp |> resp_body_json() |> pluck('meta', 'pagination', 'page_count')
+  
+  # Get one page of trips
+  get_trips_page = function(page) {
+   req = request(
+     glue::glue('https://ridewithgps.com/api/v1/trips.json?page={page}')) |> 
+    req_headers('x-rwgps-api-key'=api_key,
+                'x-rwgps-auth-token' = auth_token)
+    resp <- req_perform(req)
+    resp |> resp_body_json() |> pluck('trips')
+  }
+  
+  # Get all the trips in a data frame
+  trips_raw = 1:pages |> 
+    map(get_trips_page) |> 
+    bind_rows()
+  
+  trips_raw
+}
+
+feet_per_meter = 3.28084
+
+# Make break points and labels
+breaks = tibble(
+  date=seq.Date(ymd('2023-01-01'), ymd('2023-12-1'), by='month'),
+  year_day=yday(date),
+  label=format(date, '%b'))
+
+# Authenticate
+api_key = keyring::key_get('RideWithGPS_API_Key')
+auth_token = get_auth_token(api_key)
+
+# Get ride data
+tracks_raw = get_rides(api_key, auth_token)
 
 # Data to use for plotting
-feet_per_meter = 3.28084
-tracks_data = trips_raw |> 
+tracks_data = tracks_raw |> 
   transmute(datestamp=lubridate::ymd_hms(departed_at),
     year=year(datestamp), month=month(datestamp), yday=yday(datestamp), 
     miles=distance*feet_per_meter/5280,
@@ -95,18 +115,13 @@ tracks_data = trips_raw |>
          n=seq_along(miles)) |> 
   ungroup()
 
-# Make break points and labels
-breaks = tibble(
-  date=seq.Date(ymd('2023-01-01'), ymd('2023-12-1'), by='month'),
-  year_day=yday(date),
-  label=format(date, '%b'))
-
 # Cumulative miles
 (miles = ggplot(tracks_data, aes(yday, cum_miles, color=factor(year))) +
   geom_step() +
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
   labs(x='', y='Miles', title='Cumulative miles ridden by year', color='') +
   theme_minimal() +
   theme(axis.text.x=element_text(hjust=-0.2),
@@ -118,6 +133,7 @@ breaks = tibble(
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
   labs(x='', y='Feet climbed', 
        title='Cumulative feet climbed by year', color='') +
   theme_minimal() +
@@ -130,6 +146,7 @@ breaks = tibble(
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
   labs(x='', y='Moving time', 
        title='Cumulative moving time by year', color='') +
   theme_minimal() +
@@ -142,6 +159,7 @@ breaks = tibble(
   scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
                      minor_breaks=NULL) +
   scale_y_continuous(labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
   labs(x='', y='Number of rides', 
        title='Cumulative rides by year', color='') +
   theme_minimal() +
@@ -149,13 +167,15 @@ breaks = tibble(
           plot.title=element_text(face='bold', size=rel(1.5))))
 
 # Monthly miles
-tracks_data |> 
+(tracks_data |> 
   summarize(miles=sum(miles), .by=c(year, month)) |> 
   ggplot(aes(month, miles, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  scale_fill_brewer(palette='Set1') +
   labs(title='Monthly miles', fill=NULL) +
-  theme_minimal()
+  theme_minimal()) |> 
+  plotly::ggplotly()
 
 # Monthly climb
 tracks_data |> 
@@ -163,6 +183,7 @@ tracks_data |>
   ggplot(aes(month, climb, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  scale_fill_brewer(palette='Set1') +
   labs(x='', y='Feet climbed', 
        title='Monthly climb', fill=NULL) +
   theme_minimal() +
@@ -175,6 +196,7 @@ tracks_data |>
   ggplot(aes(month, moving_time, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  scale_fill_brewer(palette='Set1') +
   labs(x='', y='Moving time', 
        title='Monthly moving time', fill=NULL) +
   theme_minimal() +
@@ -187,6 +209,7 @@ tracks_data |>
   ggplot(aes(month, rides, fill=factor(year))) +
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
+  scale_fill_brewer(palette='Set1') +
   labs(x='', y='Number of rides', 
        title='Monthly rides', fill=NULL) +
   theme_minimal() +
@@ -198,6 +221,7 @@ tracks_data |>
   ggplot(aes(miles, fill=factor(year), group=year)) +
   geom_histogram(binwidth=5, position='dodge') +
   scale_y_continuous(minor_breaks=NULL) +
+  scale_fill_brewer(palette='Set1') +
   labs(title='Ride length', y='Number of rides', fill=NULL) +
   facet_grid(year ~ activity) +
   theme_minimal()
