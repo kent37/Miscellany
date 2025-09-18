@@ -92,6 +92,11 @@ breaks = tibble(
   year_day=yday(date),
   label=format(date, '%b'))
 
+theme_set(theme_minimal() +
+  theme(axis.text.x=element_text(hjust=-0.2),
+          plot.title=element_text(face='bold', size=rel(1.5))))
+)
+
 # Authenticate
 api_key = keyring::key_get('RideWithGPS_API_Key')
 auth_token = get_auth_token(api_key)
@@ -113,6 +118,10 @@ tracks_data = tracks_raw |>
          cum_climb=cumsum(elevation),
          cum_time=cumsum(moving_time),
          n=seq_along(miles)) |> 
+  group_by(year, activity) |> 
+  mutate(activity_miles=cumsum(miles), 
+         activity_climb=cumsum(elevation),
+         activity_time=cumsum(moving_time)) |> 
   ungroup()
 
 # Cumulative miles
@@ -122,10 +131,18 @@ tracks_data = tracks_raw |>
                      minor_breaks=NULL) +
   scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
   scale_color_brewer(palette='Set1') +
-  labs(x='', y='Miles', title='Cumulative miles ridden by year', color='') +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5))))
+  labs(x='', y='Miles', title='Cumulative miles ridden by year', color=''))
+
+# Miles by activity
+ggplot(tracks_data, aes(yday, activity_miles, color=factor(year))) +
+  geom_step() +
+  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
+                     minor_breaks=NULL) +
+  scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
+  labs(x='', y='Miles', 
+       title='Cumulative miles ridden by year by activity', color='') +
+  facet_wrap(~activity)
 
 # Cumulative climb
 (climb = ggplot(tracks_data, aes(yday, cum_climb, color=factor(year))) +
@@ -135,10 +152,18 @@ tracks_data = tracks_raw |>
   scale_y_continuous(labels=scales::comma) +
   scale_color_brewer(palette='Set1') +
   labs(x='', y='Feet climbed', 
-       title='Cumulative feet climbed by year', color='') +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5))))
+       title='Cumulative feet climbed by year', color=''))
+
+# Climb by activity
+ggplot(tracks_data, aes(yday, activity_climb, color=factor(year))) +
+  geom_step() +
+  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
+                     minor_breaks=NULL) +
+  scale_y_continuous(labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
+  labs(x='', y='Feet climbed', 
+       title='Cumulative feet climbed by year by activity', color='') +
+  facet_wrap(~activity)
 
 # Cumulative moving time
 (time = ggplot(tracks_data, aes(yday, cum_time, color=factor(year))) +
@@ -148,10 +173,18 @@ tracks_data = tracks_raw |>
   scale_y_continuous(labels=scales::comma) +
   scale_color_brewer(palette='Set1') +
   labs(x='', y='Moving time', 
-       title='Cumulative moving time by year', color='') +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5))))
+       title='Cumulative moving time by year', color=''))
+
+# Time by activity
+ggplot(tracks_data, aes(yday, activity_time, color=factor(year))) +
+  geom_step() +
+  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
+                     minor_breaks=NULL) +
+  scale_y_continuous(labels=scales::comma) +
+  scale_color_brewer(palette='Set1') +
+  labs(x='', y='Moving time', 
+       title='Cumulative moving time by year and activity', color='') +
+  facet_wrap(~activity)
 
 # Cumulative number of rides
 (rides = ggplot(tracks_data, aes(yday, n, color=factor(year))) +
@@ -161,10 +194,7 @@ tracks_data = tracks_raw |>
   scale_y_continuous(labels=scales::comma) +
   scale_color_brewer(palette='Set1') +
   labs(x='', y='Number of rides', 
-       title='Cumulative rides by year', color='') +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5))))
+       title='Cumulative rides by year', color=''))
 
 # Monthly miles
 (tracks_data |> 
@@ -173,8 +203,7 @@ tracks_data = tracks_raw |>
   geom_col(position=position_dodge(preserve='single')) +
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
   scale_fill_brewer(palette='Set1') +
-  labs(title='Monthly miles', fill=NULL) +
-  theme_minimal()) |> 
+  labs(title='Monthly miles', fill=NULL)) |> 
   plotly::ggplotly()
 
 # Monthly climb
@@ -185,10 +214,7 @@ tracks_data |>
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
   scale_fill_brewer(palette='Set1') +
   labs(x='', y='Feet climbed', 
-       title='Monthly climb', fill=NULL) +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5)))
+       title='Monthly climb', fill=NULL)
 
 # Monthly moving time
 tracks_data |> 
@@ -198,10 +224,7 @@ tracks_data |>
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
   scale_fill_brewer(palette='Set1') +
   labs(x='', y='Moving time', 
-       title='Monthly moving time', fill=NULL) +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5)))
+       title='Monthly moving time', fill=NULL)
 
 # Monthly rides
 tracks_data |> 
@@ -211,10 +234,7 @@ tracks_data |>
   scale_x_continuous(breaks = 1:12, labels=month.abb, minor_breaks=NULL) +
   scale_fill_brewer(palette='Set1') +
   labs(x='', y='Number of rides', 
-       title='Monthly rides', fill=NULL) +
-  theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.2),
-          plot.title=element_text(face='bold', size=rel(1.5)))
+       title='Monthly rides', fill=NULL)
 
 # Histogram of miles
 tracks_data |> 
@@ -223,5 +243,18 @@ tracks_data |>
   scale_y_continuous(minor_breaks=NULL) +
   scale_fill_brewer(palette='Set1') +
   labs(title='Ride length', y='Number of rides', fill=NULL) +
-  facet_grid(year ~ activity) +
-  theme_minimal()
+  facet_grid(year ~ activity)
+
+
+# Calculate average moving speed and create the plot
+tracks_data |>
+  mutate(avg_speed = miles / (moving_time / 60)) |>  # miles per hour
+  ggplot(aes(x = miles, y = avg_speed)) +
+  geom_point(aes(color = factor(activity)), alpha = 0.7) +
+  scale_color_brewer(palette = 'Set1') +
+  labs(
+    x = 'Distance (miles)',
+    y = 'Average Moving Speed (mph)',
+    title = 'Average Moving Speed vs Distance',
+    color = 'Year'
+  )
