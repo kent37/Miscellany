@@ -95,7 +95,7 @@ breaks = tibble(
 theme_set(theme_minimal() +
   theme(axis.text.x=element_text(hjust=-0.2),
           plot.title=element_text(face='bold', size=rel(1.5))))
-)
+
 
 # Authenticate
 api_key = keyring::key_get('RideWithGPS_API_Key')
