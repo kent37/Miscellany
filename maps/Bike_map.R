@@ -6,12 +6,13 @@ library(sf)
 gps_path = here::here('RWGPS/rwgps_backup/')
 gps_files = list.files(gps_path, '*.gpx', full.names=TRUE)
 
-tracks = map(gps_files, ~read_sf(.x, layer='tracks'))
-tracks = bind_rows(tracks)
+tracks_all = map(gps_files, ~read_sf(.x, layer='tracks'))
+tracks_all = bind_rows(tracks_all)
 
 # Write as a gpkg so we can subset in QGIS
-write_sf(tracks, file.path(gps_path, 'tracks.gpkg'), layer='all_tracks')
+write_sf(tracks_all, file.path(gps_path, 'tracks.gpkg'), layer='all_tracks')
 
+# Use QGIS to subset to local tracks
 tracks = read_sf(file.path(gps_path, 'tracks.gpkg'), layer='selected_tracks')
 
 tracks = tracks |> st_transform(26986) # MA State Plane (m)
@@ -24,10 +25,10 @@ boundary_all = st_union(boundary)
 
 # Waterways from MassGIS give good coverage within state
 # https://www.mass.gov/info-details/massgis-data-major-ponds-and-major-streams
-rivers = read_sf(here::here('maps/data/majorhydro/MAJSTRM_ARC.shp'))
+rivers = read_sf(here::here('maps/data/Massachusetts_hydrography/majorhydro/MAJSTRM_ARC.shp'))
 rivers = rivers[boundary_all,]
 
-ponds = read_sf(here::here('maps/data/majorhydro/MAJPOND_POLY.shp'))
+ponds = read_sf(here::here('maps/data/Massachusetts_hydrography/majorhydro/MAJPOND_POLY.shp'))
 ponds = ponds[boundary_all,]
 
 # Waterways from OSM
