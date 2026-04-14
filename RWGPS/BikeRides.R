@@ -4,16 +4,16 @@ library(httr2)
 library(sf)
 
 # Get tracks from a downloaded backup
-gps_path = here::here('RWGPS/rwgps_backup/')
-gps_files = list.files(gps_path, '*.gpx', full.names=TRUE)
+# gps_path = here::here('RWGPS/rwgps_backup/')
+# gps_files = list.files(gps_path, '*.gpx', full.names=TRUE)
 
 # Read a GPX, return length and climb in feet and start time
 # Don't use this
-read_gpx = function(path) {
-  track = read_sf(path, layer='tracks')
-  length = st_length(st_transform(track, 2249))
-  pts = read_sf(path, layer='track_points')
-  time = pts$time[[1]]
+# read_gpx = function(path) {
+#   track = read_sf(path, layer='tracks')
+#   length = st_length(st_transform(track, 2249))
+#   pts = read_sf(path, layer='track_points')
+#   time = pts$time[[1]]
   
   # This roughly approximates what ride with GPS does
   # It does not give exactly the same results!
@@ -106,6 +106,7 @@ tracks_raw = get_rides(api_key, auth_token)
 
 # Data to use for plotting
 tracks_data = tracks_raw |> 
+  filter(activity_type != 'cycling:virtual') |> # No Zwift
   transmute(datestamp=lubridate::ymd_hms(departed_at),
     year=year(datestamp), month=month(datestamp), yday=yday(datestamp), 
     miles=distance*feet_per_meter/5280,
@@ -125,87 +126,95 @@ tracks_data = tracks_raw |>
          activity_rides=seq_along(miles)) |> 
   ungroup()
 
+# Data for year-to-date plots (filtered to current day-of-year)
+tracks_ytd <- tracks_data |> filter(yday <= yday(today() + days(7)))
+as_of_label <- paste('Showing rides as of',
+                     month(today(), label=TRUE, abbr=FALSE), mday(today()))
+
+
+plot_miles <- function(tracks_data, y, title) {
+  ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
+    geom_step() +
+    scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
+                       minor_breaks=NULL) +
+    scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
+    scale_color_brewer(palette='Set1') +
+    labs(x='', y='Miles', title=title, color='')
+}
+
+plot_climb <- function(tracks_data, y, title) {
+  ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
+    geom_step() +
+    scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
+                       minor_breaks=NULL) +
+    scale_y_continuous(labels=scales::comma) +
+    scale_color_brewer(palette='Set1') +
+    labs(x='', y='Feet climbed', title=title, color='')
+}
+
+plot_time <- function(tracks_data, y, title) {
+  ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
+    geom_step() +
+    scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
+                       minor_breaks=NULL) +
+    scale_y_continuous(labels=scales::comma) +
+    scale_color_brewer(palette='Set1') +
+    labs(x='', y='Moving time', title=title, color='')
+}
+
+plot_rides <- function(tracks_data, y, title) {
+  ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
+    geom_step() +
+    scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
+                       minor_breaks=NULL) +
+    scale_y_continuous(labels=scales::comma) +
+    scale_color_brewer(palette='Set1') +
+    labs(x='', y='Number of rides', title=title, color='')
+}
+
 # Cumulative miles
-(miles = ggplot(tracks_data, aes(yday, cum_miles, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Miles', title='Cumulative miles ridden by year', color=''))
+plot_miles(tracks_data, cum_miles, 'Cumulative miles ridden by year')
+
+# Miles to date
+plot_miles(tracks_ytd, cum_miles, 'Cumulative miles ridden by year') +
+    scale_y_continuous(labels=scales::comma) +
+  labs(subtitle=as_of_label)
 
 # Miles by activity
-ggplot(tracks_data, aes(yday, activity_miles, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Miles', 
-       title='Cumulative miles ridden by year by activity', color='') +
+plot_miles(tracks_data, activity_miles, 'Cumulative miles ridden by year by activity') +
   facet_wrap(~activity)
 
 # Cumulative climb
-(climb = ggplot(tracks_data, aes(yday, cum_climb, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Feet climbed', 
-       title='Cumulative feet climbed by year', color=''))
+plot_climb(tracks_data, cum_climb, 'Cumulative feet climbed by year')
+
+# Climb to date
+plot_climb(tracks_ytd, cum_climb, 'Cumulative feet climbed by year') +
+  labs(subtitle=as_of_label)
 
 # Climb by activity
-ggplot(tracks_data, aes(yday, activity_climb, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Feet climbed', 
-       title='Cumulative feet climbed by year by activity', color='') +
+plot_climb(tracks_data, activity_climb, 'Cumulative feet climbed by year by activity') +
   facet_wrap(~activity)
 
 # Cumulative moving time
-(time = ggplot(tracks_data, aes(yday, cum_time, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Moving time', 
-       title='Cumulative moving time by year', color=''))
+plot_time(tracks_data, cum_time, 'Cumulative moving time by year')
+
+# Time to date
+plot_time(tracks_ytd, cum_time, 'Cumulative moving time by year') +
+  labs(subtitle=as_of_label)
 
 # Time by activity
-ggplot(tracks_data, aes(yday, activity_time, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Moving time', 
-       title='Cumulative moving time by year and activity', color='') +
+plot_time(tracks_data, activity_time, 'Cumulative moving time by year and activity') +
   facet_wrap(~activity)
 
 # Cumulative number of rides
-(rides = ggplot(tracks_data, aes(yday, n, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Number of rides', 
-       title='Cumulative rides by year', color=''))
+plot_rides(tracks_data, n, 'Cumulative rides by year')
+
+# Rides to date
+plot_rides(tracks_ytd, n, 'Cumulative rides by year') +
+  labs(subtitle=as_of_label)
 
 # Rides by activity
-ggplot(tracks_data, aes(yday, activity_rides, color=factor(year))) +
-  geom_step() +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
-  scale_y_continuous(labels=scales::comma) +
-  scale_color_brewer(palette='Set1') +
-  labs(x='', y='Number of rides', 
-       title='Cumulative rides by year and activity', color='') +
+plot_rides(tracks_data, activity_rides, 'Cumulative rides by year and activity') +
   facet_wrap(~activity)
 
 # Monthly miles
