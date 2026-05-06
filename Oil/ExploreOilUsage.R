@@ -15,6 +15,7 @@ purchases = purchases_raw |>
 breaks = tibble(
   date=seq.Date(ymd('2023-01-01'), ymd('2023-12-1'), by='month'),
   year_day=yday(date),
+  mid_day=year_day+15,
   label=format(date, '%b'))
 
 lw = 1
@@ -54,14 +55,16 @@ ggplot(chart_data) +
   geom_segment(aes(x=previous_day, xend=purchase_day,
                      y=daily_use, yend=daily_use, color=year),
                  linewidth=lw) +
-  scale_x_continuous(breaks=breaks$year_day, labels=breaks$label, 
-                     minor_breaks=NULL) +
+  scale_x_continuous(breaks=breaks$mid_day, labels=breaks$label,
+                     minor_breaks=breaks$year_day) +
   scale_color_brewer(palette='Set1') +
   ylim(0, NA) +
   labs(x='Date', y='Average daily use (Gal)', color='Year',
        title='Average daily oil use (Gal)') +
   theme_minimal() +
-  theme(axis.text.x=element_text(hjust=-0.4))
+  theme(panel.grid.major.x=element_blank(),
+        panel.grid.minor.x=element_line(colour='#EBEBEBFF'),
+        axis.ticks.x=element_blank())
 
 # Price
 ggplot(purchases, aes(purchase_date, unit_price)) +
