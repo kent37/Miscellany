@@ -28,7 +28,7 @@ library(sf)
   # climb = sum(ele_diff_threshold[ele_diff_threshold > 0]) * feet_per_meter
   # 
   # tibble(length=length, climb=climb, time=time)
-}
+# }
 
 # tracks_meta = map(gps_files, read_gpx, .progress=TRUE) |> 
 #   list_rbind()
