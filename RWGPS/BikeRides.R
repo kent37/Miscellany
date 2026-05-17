@@ -85,6 +85,11 @@ tracks_data = tracks_raw |>
          activity_rides=seq_along(miles)) |> 
   ungroup()
 
+year_colors <- setNames(
+  RColorBrewer::brewer.pal(max(3, n_distinct(tracks_data$year)), 'Set1')[seq_len(n_distinct(tracks_data$year))],
+  as.character(sort(unique(tracks_data$year)))
+)
+
 # Data for year-to-date plots (filtered to current day-of-year)
 tracks_ytd <- tracks_data |> filter(yday <= yday(today() + days(7)))
 as_of_label <- paste('Showing rides as of',

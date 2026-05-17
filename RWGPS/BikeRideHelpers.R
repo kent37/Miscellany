@@ -49,7 +49,7 @@ plot_miles <- function(tracks_data, y, title) {
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
                        minor_breaks=NULL) +
     scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
-    scale_color_brewer(palette='Set1') +
+    scale_color_manual(values=year_colors) +
     labs(x='', y='Miles', title=title, color='')
 }
 
@@ -59,7 +59,7 @@ plot_climb <- function(tracks_data, y, title) {
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
                        minor_breaks=NULL) +
     scale_y_continuous(labels=scales::comma) +
-    scale_color_brewer(palette='Set1') +
+    scale_color_manual(values=year_colors) +
     labs(x='', y='Feet climbed', title=title, color='')
 }
 
@@ -69,7 +69,7 @@ plot_time <- function(tracks_data, y, title) {
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
                        minor_breaks=NULL) +
     scale_y_continuous(labels=scales::comma) +
-    scale_color_brewer(palette='Set1') +
+    scale_color_manual(values=year_colors) +
     labs(x='', y='Moving time', title=title, color='')
 }
 
@@ -79,6 +79,6 @@ plot_rides <- function(tracks_data, y, title) {
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
                        minor_breaks=NULL) +
     scale_y_continuous(labels=scales::comma) +
-    scale_color_brewer(palette='Set1') +
+    scale_color_manual(values=year_colors) +
     labs(x='', y='Number of rides', title=title, color='')
 }
