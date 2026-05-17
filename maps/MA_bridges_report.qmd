@@ -1,0 +1,295 @@
+---
+title: "Massachusetts Bridge Condition Report"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    theme: cosmo
+    self-contained: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+
+bridges <- read_csv("data/MA_bridges_2025.csv", show_col_types = FALSE)
+
+county_names <- c(
+  "001" = "Barnstable", "003" = "Berkshire",  "005" = "Bristol",
+  "007" = "Dukes",      "009" = "Essex",       "011" = "Franklin",
+  "013" = "Hampden",    "015" = "Hampshire",   "017" = "Middlesex",
+  "019" = "Nantucket",  "021" = "Norfolk",     "023" = "Plymouth",
+  "025" = "Suffolk",    "027" = "Worcester"
+)
+
+cond_labels <- c(
+  "0" = "0 – Failed",
+  "1" = "1 – Imminent Failure",
+  "2" = "2 – Critical",
+  "3" = "3 – Serious",
+  "4" = "4 – Poor",
+  "5" = "5 – Fair",
+  "6" = "6 – Satisfactory",
+  "7" = "7 – Good",
+  "8" = "8 – Very Good",
+  "9" = "9 – Excellent"
+)
+
+bridges <- bridges |>
+  mutate(
+    county = county_names[COUNTY_CODE_003],
+    DECK_COND_058 = as.character(DECK_COND_058),
+    SUPERSTRUCTURE_COND_059 = as.character(SUPERSTRUCTURE_COND_059),
+    SUBSTRUCTURE_COND_060 = as.character(SUBSTRUCTURE_COND_060)
+  )
+
+condition_colors <- c("G" = "#2ecc71", "F" = "#f39c12", "P" = "#e74c3c")
+rating_palette <- c(
+  "#8B0000", "#e74c3c", "#e74c3c", "#e74c3c", "#e74c3c",
+  "#f39c12", "#f39c12", "#2ecc71", "#2ecc71", "#27ae60"
+)
+```
+
+## Overview
+
+This report summarizes the structural condition of **`r format(nrow(bridges), big.mark=",")`
+bridges** in Massachusetts, based on 2025 National Bridge Inventory (NBI) data. Each bridge
+is rated on three components — deck, superstructure, and substructure — using a 0–9 scale.
+The overall `BRIDGE_CONDITION` classification (Good / Fair / Poor) is derived from the
+lowest of those three component ratings.
+
+```{r}
+#| label: fig-overall
+#| fig-cap: "Overall bridge condition across Massachusetts."
+
+overall <- bridges |>
+  count(BRIDGE_CONDITION) |>
+  mutate(
+    label = case_when(
+      BRIDGE_CONDITION == "G" ~ "Good",
+      BRIDGE_CONDITION == "F" ~ "Fair",
+      BRIDGE_CONDITION == "P" ~ "Poor"
+    ),
+    label = factor(label, levels = c("Good", "Fair", "Poor")),
+    pct = n / sum(n)
+  )
+
+ggplot(overall, aes(label, n, fill = BRIDGE_CONDITION)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = sprintf("%s\n%.1f%%", format(n, big.mark=","), 100*pct)),
+            vjust = -0.4, size = 3.5) +
+  scale_fill_manual(values = condition_colors, guide = "none") +
+  scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0, 0.15))) +
+  labs(x = NULL, y = "Number of bridges") +
+  theme_minimal(base_size = 13)
+```
+
+::: {.callout-warning}
+**`r bridges |> filter(BRIDGE_CONDITION == "P") |> nrow()` bridges** (`r sprintf("%.1f%%", 100 * mean(bridges$BRIDGE_CONDITION == "P"))` of total) are rated **Poor** — meaning at least one structural component has advanced deterioration (rating ≤ 4). These bridges may carry load restrictions or require monitoring.
+:::
+
+## Condition Ratings
+
+Bridges are inspected on three structural components. A rating of **5 (Fair)** means
+primary elements are sound but show minor cracking or section loss. Ratings of **4 (Poor)**
+or below indicate significant deterioration.
+
+```{r}
+#| label: fig-components
+#| fig-cap: "Rating distribution for each of the three structural components. Bridges rated N (not applicable, e.g. culverts) are excluded."
+#| fig-height: 7
+
+component_data <- bind_rows(
+  bridges |> filter(DECK_COND_058 != "N") |>
+    count(rating = DECK_COND_058) |> mutate(component = "Deck"),
+  bridges |> filter(SUPERSTRUCTURE_COND_059 != "N") |>
+    count(rating = SUPERSTRUCTURE_COND_059) |> mutate(component = "Superstructure"),
+  bridges |> filter(SUBSTRUCTURE_COND_060 != "N") |>
+    count(rating = SUBSTRUCTURE_COND_060) |> mutate(component = "Substructure")
+) |>
+  mutate(
+    rating = factor(rating, levels = as.character(0:9)),
+    fill_group = case_when(
+      rating %in% c("0","1","2","3","4") ~ "Poor",
+      rating %in% c("5","6")             ~ "Fair",
+      TRUE                               ~ "Good"
+    ),
+    fill_group = factor(fill_group, levels = c("Good","Fair","Poor"))
+  )
+
+ggplot(component_data, aes(rating, n, fill = fill_group)) +
+  geom_col() +
+  facet_wrap(~component, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = c("Good"="#2ecc71","Fair"="#f39c12","Poor"="#e74c3c")) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(x = "Condition rating", y = "Number of bridges", fill = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: tbl-component-summary
+#| tbl-cap: "Percentage of bridges in each condition band by component (N-rated excluded)."
+
+component_summary <- tibble(
+  Component = c("Deck", "Superstructure", "Substructure"),
+  Poor = c(
+    bridges |> filter(DECK_COND_058 != "N", as.integer(DECK_COND_058) <= 4) |> nrow(),
+    bridges |> filter(SUPERSTRUCTURE_COND_059 != "N", as.integer(SUPERSTRUCTURE_COND_059) <= 4) |> nrow(),
+    bridges |> filter(SUBSTRUCTURE_COND_060 != "N", as.integer(SUBSTRUCTURE_COND_060) <= 4) |> nrow()
+  ),
+  Fair = c(
+    bridges |> filter(DECK_COND_058 %in% c("5","6")) |> nrow(),
+    bridges |> filter(SUPERSTRUCTURE_COND_059 %in% c("5","6")) |> nrow(),
+    bridges |> filter(SUBSTRUCTURE_COND_060 %in% c("5","6")) |> nrow()
+  ),
+  Good = c(
+    bridges |> filter(DECK_COND_058 %in% c("7","8","9")) |> nrow(),
+    bridges |> filter(SUPERSTRUCTURE_COND_059 %in% c("7","8","9")) |> nrow(),
+    bridges |> filter(SUBSTRUCTURE_COND_060 %in% c("7","8","9")) |> nrow()
+  ),
+  Total = c(
+    bridges |> filter(DECK_COND_058 != "N") |> nrow(),
+    bridges |> filter(SUPERSTRUCTURE_COND_059 != "N") |> nrow(),
+    bridges |> filter(SUBSTRUCTURE_COND_060 != "N") |> nrow()
+  )
+) |>
+  mutate(
+    `% Poor` = sprintf("%.1f%%", 100 * Poor / Total),
+    `% Fair`  = sprintf("%.1f%%", 100 * Fair  / Total),
+    `% Good`  = sprintf("%.1f%%", 100 * Good  / Total)
+  ) |>
+  select(Component, Poor, `% Poor`, Fair, `% Fair`, Good, `% Good`)
+
+knitr::kable(component_summary, align = "lrrrrrr")
+```
+
+## Condition by County
+
+```{r}
+#| label: fig-county
+#| fig-cap: "Bridge condition by county, ordered by percentage rated Poor."
+#| fig-height: 6
+
+county_cond <- bridges |>
+  filter(!is.na(county)) |>
+  count(county, BRIDGE_CONDITION) |>
+  group_by(county) |>
+  mutate(pct = n / sum(n)) |>
+  ungroup() |>
+  mutate(
+    label = case_when(
+      BRIDGE_CONDITION == "G" ~ "Good",
+      BRIDGE_CONDITION == "F" ~ "Fair",
+      BRIDGE_CONDITION == "P" ~ "Poor"
+    ),
+    label = factor(label, levels = c("Good","Fair","Poor"))
+  )
+
+county_order <- county_cond |>
+  filter(BRIDGE_CONDITION == "P") |>
+  arrange(pct) |>
+  pull(county)
+
+county_cond |>
+  mutate(county = factor(county, levels = county_order)) |>
+  ggplot(aes(pct, county, fill = label)) +
+  geom_col() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("Good"="#2ecc71","Fair"="#f39c12","Poor"="#e74c3c")) +
+  labs(x = "Share of bridges", y = NULL, fill = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+Essex County has the highest share of Poor-rated bridges at **16.6%**, followed by
+Franklin (12.4%) and Berkshire (11.6%). More rural counties with older infrastructure
+tend to have higher rates of deterioration.
+
+## Age and Condition
+
+The median Massachusetts bridge was built in **`r median(bridges$YEAR_BUILT_027, na.rm=TRUE)`**,
+with a quarter of the inventory dating from before **`r quantile(bridges$YEAR_BUILT_027, 0.25, na.rm=TRUE)`**.
+Bridges built in the 1920s and 1930s have the highest Poor rates.
+
+```{r}
+#| label: fig-decade
+#| fig-cap: "Percentage of bridges rated Poor, by decade of construction (1910–2020s)."
+#| fig-height: 4
+
+decade_data <- bridges |>
+  mutate(decade = floor(YEAR_BUILT_027 / 10) * 10) |>
+  filter(decade >= 1910, !is.na(BRIDGE_CONDITION)) |>
+  group_by(decade) |>
+  summarise(
+    n = n(),
+    pct_poor = mean(BRIDGE_CONDITION == "P"),
+    pct_fair = mean(BRIDGE_CONDITION == "F"),
+    pct_good = mean(BRIDGE_CONDITION == "G")
+  ) |>
+  pivot_longer(starts_with("pct_"), names_to = "condition", values_to = "pct") |>
+  mutate(
+    condition = case_when(
+      condition == "pct_good" ~ "Good",
+      condition == "pct_fair" ~ "Fair",
+      condition == "pct_poor" ~ "Poor"
+    ),
+    condition = factor(condition, levels = c("Good","Fair","Poor"))
+  )
+
+ggplot(decade_data, aes(decade, pct, fill = condition)) +
+  geom_col(position = "stack", width = 8) +
+  scale_x_continuous(breaks = seq(1910, 2020, 10)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("Good"="#2ecc71","Fair"="#f39c12","Poor"="#e74c3c")) +
+  labs(x = "Decade built", y = "Share of bridges", fill = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+## High-Priority Concerns
+
+The 15 Poor-rated bridges carrying the most daily traffic represent an urgent maintenance
+priority, as failures would affect large numbers of commuters.
+
+```{r}
+#| label: tbl-high-traffic
+#| tbl-cap: "Top 15 Poor-rated bridges by average daily traffic (ADT)."
+
+bridges |>
+  filter(BRIDGE_CONDITION == "P") |>
+  arrange(desc(ADT_029)) |>
+  slice_head(n = 15) |>
+  mutate(
+    Route = str_trim(str_remove_all(FACILITY_CARRIED_007, "'")),
+    Crosses = str_trim(str_remove_all(FEATURES_DESC_006A, "'")),
+    ADT = format(ADT_029, big.mark = ","),
+    Rating = LOWEST_RATING,
+    Built = YEAR_BUILT_027
+  ) |>
+  select(Route, Crosses, County = county, Built, ADT, Rating) |>
+  knitr::kable(align = "llllrr")
+```
+
+::: {.callout-note}
+**`r bridges |> filter(LOWEST_RATING <= 3) |> nrow()` bridges** have a component rating of 3 (Serious) or below, indicating local failures are possible or the bridge is at imminent risk. These require the most urgent attention.
+:::
+
+## Summary
+
+| Metric | Value |
+|---|---|
+| Total bridges | `r format(nrow(bridges), big.mark=",")` |
+| Good condition | `r bridges |> filter(BRIDGE_CONDITION=="G") |> nrow() |> format(big.mark=",")` (`r sprintf("%.1f%%", 100*mean(bridges$BRIDGE_CONDITION=="G"))`) |
+| Fair condition | `r bridges |> filter(BRIDGE_CONDITION=="F") |> nrow() |> format(big.mark=",")` (`r sprintf("%.1f%%", 100*mean(bridges$BRIDGE_CONDITION=="F"))`) |
+| Poor condition | `r bridges |> filter(BRIDGE_CONDITION=="P") |> nrow() |> format(big.mark=",")` (`r sprintf("%.1f%%", 100*mean(bridges$BRIDGE_CONDITION=="P"))`) |
+| Serious or worse (rating ≤ 3) | `r bridges |> filter(LOWEST_RATING <= 3) |> nrow()` |
+| Median year built | `r median(bridges$YEAR_BUILT_027, na.rm=TRUE)` |
+| County with most Poor bridges | Essex (16.6%) |
+
+*Data source: Federal Highway Administration National Bridge Inventory, 2025.*
