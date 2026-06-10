@@ -47,7 +47,8 @@ plot_miles <- function(tracks_data, y, title) {
   ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
     geom_step() +
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
-                       minor_breaks=NULL) +
+                       minor_breaks=NULL, 
+                       guide=guide_axis(check.overlap=TRUE)) +
     scale_y_continuous(limits=c(0, 3000), labels=scales::comma) +
     scale_color_manual(values=year_colors) +
     labs(x='', y='Miles', title=title, color='')
@@ -57,7 +58,8 @@ plot_climb <- function(tracks_data, y, title) {
   ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
     geom_step() +
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
-                       minor_breaks=NULL) +
+                       minor_breaks=NULL, 
+                       guide=guide_axis(check.overlap=TRUE)) +
     scale_y_continuous(labels=scales::comma) +
     scale_color_manual(values=year_colors) +
     labs(x='', y='Feet climbed', title=title, color='')
@@ -67,7 +69,8 @@ plot_time <- function(tracks_data, y, title) {
   ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
     geom_step() +
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
-                       minor_breaks=NULL) +
+                       minor_breaks=NULL, 
+                       guide=guide_axis(check.overlap=TRUE)) +
     scale_y_continuous(labels=scales::comma) +
     scale_color_manual(values=year_colors) +
     labs(x='', y='Moving time', title=title, color='')
@@ -77,7 +80,8 @@ plot_rides <- function(tracks_data, y, title) {
   ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
     geom_step() +
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
-                       minor_breaks=NULL) +
+                       minor_breaks=NULL, 
+                       guide=guide_axis(check.overlap=TRUE)) +
     scale_y_continuous(labels=scales::comma) +
     scale_color_manual(values=year_colors) +
     labs(x='', y='Number of rides', title=title, color='')

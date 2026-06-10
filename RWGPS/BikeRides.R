@@ -202,5 +202,5 @@ tracks_data |>
     x = 'Distance (miles)',
     y = 'Average Moving Speed (mph)',
     title = 'Average Moving Speed vs Distance',
-    color = 'Year'
+    color = 'Activity'
   )
