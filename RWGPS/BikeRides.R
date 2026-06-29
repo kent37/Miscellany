@@ -190,6 +190,14 @@ tracks_data |>
   labs(title='Ride length', y='Number of rides', fill=NULL) +
   facet_grid(year ~ activity)
 
+# Histogram of speed
+tracks_data |>
+  mutate(avg_speed = miles / (moving_time / 60)) |>  # miles per hour
+  ggplot(aes(x = avg_speed, fill=factor(year), group=year)) +
+  geom_histogram(binwidth=0.5) +
+  facet_grid(year ~ activity) +
+  guides(fill='none')+
+  labs(x='Average speed', y='')
 
 # Calculate average moving speed and create the plot
 tracks_data |>
