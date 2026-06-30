@@ -164,14 +164,14 @@ elmat |>
         windowsize = c(
             600, 600
         ),
-        zoom = .5,
+        zoom = 0.5,
         phi = 85,
         theta = 0
     )
 
 rayshader::render_camera(
     phi = 89,
-    zoom = .75,
+    zoom = 0.75,
     theta = 0
 )
 

@@ -80,7 +80,7 @@ land_cover <- terra::rast(path)
 
 vals <- terra::values(
     land_cover,
-    dataframe = T
+    dataframe = TRUE
 )
 
 names(vals)
@@ -147,7 +147,7 @@ img_file <- "maps/Oregon_land_cover_image.png"
 terra::writeRaster(
     land_cover_image,
     img_file,
-    overwrite = T,
+    overwrite = TRUE,
     NAflag = 255
 )
 
@@ -162,7 +162,7 @@ dem_matrix |>
     ) |>
     rayshader::add_overlay(
         img,
-        alphalayer = .9,
+        alphalayer = 0.9,
         alphacolor = "white"
     ) |>
     rayshader::add_shadow(
@@ -171,15 +171,15 @@ dem_matrix |>
             zscale = 50,
             sunaltitude = 90,
             sunangle = 315,
-        ), max_darken = .25
+        ), max_darken = 0.25
     ) |>
     rayshader::add_shadow(
         rayshader::texture_shade(
             dem_matrix,
-            detail = .95,
+            detail = 0.95,
             brightness = 90, #warn
             contrast = 80,
-        ), max_darken = .1
+        ), max_darken = 0.1
     ) |>
     rayshader::add_overlay(
       rayshader::generate_line_overlay(
@@ -199,14 +199,14 @@ dem_matrix |>
         shadow_darkness = 1,
         background = "white",
         windowsize = c(600, 400),
-        zoom = .55,
+        zoom = 0.55,
         phi = 89,
         theta = 0
     )
 
 
 rayshader::render_camera(
-    zoom = .55
+    zoom = 0.55
 )
 
 # 8. RENDER OBJECT

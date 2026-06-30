@@ -119,14 +119,14 @@ dem_matrix |>
         shadow_darkness = 1,
         background = "white",
         windowsize = c(600, 600),
-        zoom = .7,
+        zoom = 0.7,
         phi = 89,
         theta = 0
     )
 
 
 rayshader::render_camera(
-    zoom = .7
+    zoom = 0.7
 )
 
 # 8. RENDER OBJECT

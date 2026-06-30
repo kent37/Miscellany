@@ -31,7 +31,7 @@ land_cover <- terra::rast(path)
 
 vals <- terra::values(
     land_cover,
-    dataframe = T
+    dataframe = TRUE
 )
 
 names(vals)
@@ -45,7 +45,7 @@ country_land_cover <- terra::project(land_cover, 'epsg:26986') |>
   terra::crop(
     terra::vect(noho),
     snap = "in",
-    mask = T
+    mask = TRUE
 )
 
 
@@ -96,7 +96,7 @@ img_file <- "maps/land_cover_image.png"
 terra::writeRaster(
     land_cover_image,
     img_file,
-    overwrite = T,
+    overwrite = TRUE,
     NAflag = 255
 )
 
@@ -116,7 +116,7 @@ dem_matrix |>
     ) |>
     rayshader::add_overlay(
         img,
-        alphalayer = .9,
+        alphalayer = 0.9,
         alphacolor = "white"
     ) |>
     rayshader::add_shadow(
@@ -125,27 +125,27 @@ dem_matrix |>
             zscale = 50,
             sunaltitude = 90,
             sunangle = 315,
-        ), max_darken = .25
+        ), max_darken = 0.25
     ) |>
     rayshader::add_shadow(
         rayshader::texture_shade(
             dem_matrix,
-            detail = .95,
+            detail = 0.95,
             brightness = 90, #warn
             contrast = 80,
-        ), max_darken = .1
+        ), max_darken = 0.1
     ) |>
     rayshader::plot_3d(
         dem_matrix,
         zscale = 5,
-        solid = F,
-        shadow = T,
+        solid = FALSE,
+        shadow = TRUE,
         shadow_darkness = 1,
         background = "white",
         windowsize = c(
             w / 5, h / 5
         ),
-        zoom = .6,
+        zoom = 0.6,
         phi = 85,
         theta = 0 
     )
@@ -157,12 +157,12 @@ hdri_file <- here::here('maps/data', basename(u))
 
 rayshader::render_highquality(
     filename = "maps/land_cover_noho.png",
-    preview = T,
-    light = F,
+    preview = TRUE,
+    light = FALSE,
     environment_light = hdri_file,
     intensity_env = 2,
     rotate_env = 90,
-    interactive = F,
-    parallel = T,
+    interactive = FALSE,
+    parallel = TRUE,
     width = w, height = h
 )

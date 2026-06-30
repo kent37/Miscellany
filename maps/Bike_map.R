@@ -154,7 +154,7 @@ dem_matrix |>
         shadow_darkness = 1,
         background = "white",
         windowsize = c(400, 600),
-        zoom = .6,
+        zoom = 0.6,
         phi = 89,
         theta = 0
     )
