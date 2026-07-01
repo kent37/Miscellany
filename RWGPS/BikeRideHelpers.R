@@ -80,9 +80,28 @@ plot_rides <- function(tracks_data, y, title) {
   ggplot(tracks_data, aes(yday, {{y}}, color=factor(year))) +
     geom_step() +
     scale_x_continuous(breaks=breaks$year_day, labels=breaks$label,
-                       minor_breaks=NULL, 
+                       minor_breaks=NULL,
                        guide=guide_axis(check.overlap=TRUE)) +
     scale_y_continuous(labels=scales::comma) +
     scale_color_manual(values=year_colors) +
     labs(x='', y='Number of rides', title=title, color='')
+}
+
+# Compare the current year's latest cumulative value to the most recent prior
+# year's cumulative value at the same point in the year (day-of-year)
+progress_vs_prior_year <- function(data, col, unit, transform = identity, digits = 0) {
+  col <- enquo(col)
+  current_year <- max(data$year)
+  prior_year <- max(data$year[data$year < current_year])
+
+  value_at <- function(yr, day) {
+    rows <- data |> filter(year == yr, yday <= day)
+    if (nrow(rows) == 0) return(0)
+    rows |> slice_max(yday, n = 1, with_ties = FALSE) |> pull(!!col)
+  }
+
+  this_day <- max(data$yday[data$year == current_year])
+  diff <- transform(value_at(current_year, this_day) - value_at(prior_year, this_day))
+  direction <- if (diff >= 0) 'ahead of' else 'behind'
+  glue::glue('{scales::comma(abs(diff), accuracy=10^-digits)} {unit} {direction} {prior_year}')
 }

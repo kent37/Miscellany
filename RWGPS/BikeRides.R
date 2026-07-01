@@ -102,7 +102,8 @@ plot_miles(tracks_data, cum_miles, 'Cumulative miles ridden by year')
 # Miles to date
 plot_miles(tracks_ytd, cum_miles, 'Cumulative miles ridden by year') +
     scale_y_continuous(labels=scales::comma) +
-  labs(subtitle=as_of_label)
+  labs(subtitle=paste0(as_of_label, '\n',
+                        progress_vs_prior_year(tracks_data, cum_miles, 'miles')))
 
 # Miles by activity
 plot_miles(tracks_data, activity_miles, 'Cumulative miles ridden by year by activity') +
@@ -113,7 +114,8 @@ plot_climb(tracks_data, cum_climb, 'Cumulative feet climbed by year')
 
 # Climb to date
 plot_climb(tracks_ytd, cum_climb, 'Cumulative feet climbed by year') +
-  labs(subtitle=as_of_label)
+  labs(subtitle=paste0(as_of_label, '\n',
+                        progress_vs_prior_year(tracks_data, cum_climb, 'ft')))
 
 # Climb by activity
 plot_climb(tracks_data, activity_climb, 'Cumulative feet climbed by year by activity') +
@@ -124,7 +126,9 @@ plot_time(tracks_data, cum_time, 'Cumulative moving time by year')
 
 # Time to date
 plot_time(tracks_ytd, cum_time, 'Cumulative moving time by year') +
-  labs(subtitle=as_of_label)
+  labs(subtitle=paste0(as_of_label, '\n',
+                        progress_vs_prior_year(tracks_data, cum_time, 'hours',
+                                                transform = \(x) x / 60, digits = 1)))
 
 # Time by activity
 plot_time(tracks_data, activity_time, 'Cumulative moving time by year and activity') +
@@ -135,7 +139,8 @@ plot_rides(tracks_data, n, 'Cumulative rides by year')
 
 # Rides to date
 plot_rides(tracks_ytd, n, 'Cumulative rides by year') +
-  labs(subtitle=as_of_label)
+  labs(subtitle=paste0(as_of_label, '\n',
+                        progress_vs_prior_year(tracks_data, n, 'rides')))
 
 # Rides by activity
 plot_rides(tracks_data, activity_rides, 'Cumulative rides by year and activity') +
