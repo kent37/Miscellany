@@ -187,12 +187,12 @@ tracks_data |>
        title='Monthly rides', fill=NULL)
 
 # Histogram of miles
-tracks_data |> 
+tracks_ytd |> 
   ggplot(aes(miles, fill=factor(year), group=year)) +
   geom_histogram(binwidth=5, position='dodge') +
   scale_y_continuous(minor_breaks=NULL) +
   scale_fill_brewer(palette='Set1') +
-  labs(title='Ride length', y='Number of rides', fill=NULL) +
+  labs(title='Ride length - year to date', y='Number of rides', fill=NULL) +
   facet_grid(year ~ activity)
 
 # Histogram of speed
