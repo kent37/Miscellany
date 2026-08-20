@@ -101,7 +101,10 @@ progress_vs_prior_year <- function(data, col, unit, transform = identity, digits
   }
 
   this_day <- max(data$yday[data$year == current_year])
-  diff <- transform(value_at(current_year, this_day) - value_at(prior_year, this_day))
+  this_year_total = value_at(current_year, this_day)
+  diff <- transform(this_year_total - value_at(prior_year, this_day))
   direction <- if (diff >= 0) 'ahead of' else 'behind'
-  glue::glue('{scales::comma(abs(diff), accuracy=10^-digits)} {unit} {direction} {prior_year}')
+  glue::glue('YTD: {scales::comma(this_year_total, accuracy=10^-digits)} {unit} - ', 
+  '{scales::comma(abs(diff), accuracy=10^-digits)} {unit}',
+  ' {direction} {prior_year}')
 }
